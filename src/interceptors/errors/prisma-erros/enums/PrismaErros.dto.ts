@@ -1,0 +1,17 @@
+export enum PrismaErros {
+  AuthenticationFailed = 'P1000',
+  TimedOutDatabes = 'P1002',
+  DataBaseNotExist = 'P1003',
+  OperationsTimedOut = 'P1008',
+  DataBaseAlreadyExists = 'P1009',
+  ErrorOpenTSL = 'P1011',
+  FullErros = 'P1012',
+  StringInvalid = 'P1013',
+  IncorrectNumberOfParameters = 'P1016',
+  ServerClosed = 'P1017',
+  ProvidedValueToLongForConlumType = 'P2000',
+  WhereConditionDoesNotExist = 'P2001',
+  UniqueConstraintFail = 'P2002',
+  ForeingKeyFailed = 'P2003',
+  ConstraintFailedDatabase = 'P2004',
+}

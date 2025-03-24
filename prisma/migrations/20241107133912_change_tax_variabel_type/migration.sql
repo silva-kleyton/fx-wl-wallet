@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Request" ALTER COLUMN "taxVariabel" SET DATA TYPE DOUBLE PRECISION;

@@ -1,0 +1,34 @@
+#version: "3"
+#
+#services:
+#  mysql:
+#    image: mysql:8.0
+#    container_name: mysql_khure_wallet
+#    restart: always
+#    environment:
+#      MYSQL_USER: user
+#      MYSQL_PASSWORD: 123456
+#      MYSQL_ROOT_PASSWORD: 123456
+#      MYSQL_DATABASE: khure-wallet
+#    ports:
+#      - "3310:3306"
+#    volumes:
+#      - ./database/mysql:/var/lib/mysql
+
+
+version: '3.8'
+
+services:
+  db:
+    restart: always
+    image: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: wallet_local
+    volumes:
+      - ./database/postgres:/var/lib/postgresql/data
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    ports:
+      - "5433:5432"

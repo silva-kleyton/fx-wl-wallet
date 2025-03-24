@@ -1,0 +1,37 @@
+Resources:
+  InputTransactionWalletQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "input-transaction-wallet-${opt:stage}.fifo"
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      VisibilityTimeout: 360 # 360 Segundos
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - InputTransactionWalletQueueDeadLetterQueue
+            - Arn
+        maxReceiveCount: 5
+  InputTransactionWalletQueueDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "input-transaction-wallet-${opt:stage}-dlq.fifo"
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 1209600 # 14 dias em seg
+  LotWalletCron:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "lot-wallet-cron-${opt:stage}"
+      VisibilityTimeout: 420
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - LotWalletCronDeadLetterQueue
+            - Arn
+        maxReceiveCount: 1
+  LotWalletCronDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "lot-wallet-cron-${opt:stage}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 dias em seg

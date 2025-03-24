@@ -1,0 +1,89 @@
+name: PRD
+
+on:
+  push:
+    # tags:
+    #   - "*"
+
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    environment: prod
+    name: Setup, Build, and Deploy
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: prod
+      AWS_REGION: us-east-1
+      AWS_KEY: ${{ secrets.PRD_AWS_KEY }}
+      AWS_SECRET: ${{ secrets.PRD_AWS_SECRET }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+
+    # run pipeline;
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      #- run: npm ci
+      #- run: npm test
+
+      - name: Yarn CI
+        run: yarn install --frozen-lockfile
+
+      - name: Install Serverless Framework
+        run: yarn global add serverless@3.38.0
+
+      - name: Serverless AWS authentication
+        run: sls config credentials --provider aws --key $AWS_KEY --secret $AWS_SECRET
+
+      # - name: Create env file
+      #   run: |
+      #     cat > .env << EOF
+      #     ${{ secrets.ENV }}
+      #     EOF
+      #     sed '/AWS_SECRET.*/d' .env >> env_tmp
+      #     sed '/AWS_KEY.*/d' .env >> env_tmp
+      #     sed '/AWS_ACCESS_KEY_ID.*/d' .env >> env_tmp
+      #     sed '/AWS_SECRET_ACCESS_KEY.*/d' .env >> env_tmp
+      #     mv env_tmp .env
+
+      # - name: view the secrets context
+      #   shell: bash
+      #   run: echo "$SECRETS_CONTEXT"
+      #   env:
+      #     SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
+      - name: Install Yarn dependencies
+        run: yarn
+
+      - name: Exclude build
+        run: rm -Rf .build
+
+      - name: Build Project
+        run: yarn build
+
+      - name: Migrate - SSH Tunnel 
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$AWS_BASTION_SSH_KEY" > ~/.ssh/database.pem
+          chmod 600 ~/.ssh/database.pem
+          cat >>~/.ssh/config <<END
+          Host *
+            StrictHostKeyChecking no
+          END
+          ssh -fNT -L localhost:${{ secrets.PRD_AWS_DB_PORT }}:${{ secrets.PRD_AWS_DB_HOST }}:${{ secrets.PRD_AWS_DB_PORT }} -i ~/.ssh/database.pem $AWS_BASTION_SSH_USER_HOST -v
+        env:
+          AWS_BASTION_SSH_KEY: ${{ secrets.PRD_AWS_BASTION_SSH_KEY }}
+          AWS_BASTION_SSH_USER_HOST: ${{ secrets.PRD_AWS_BASTION_USER_HOST }}
+
+      - name: Configure prisma
+        run: yarn setup-prisma
+
+      - name: Deploy
+        run: |
+          sls deploy --stage prd --region $AWS_REGION

@@ -1,0 +1,77 @@
+Resources:
+  ApiGatewayPrivateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allows HTTPS connections from Api Gateway Private
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: ${ssm:/devsx/vpc/cidr-ip}.0.0/16
+      VpcId: ${ssm:/devsx/vpc/vpc-id}
+      Tags:
+        - Key: Name
+          Value: Api Wallet Api Gateway Private
+
+  ApiGatewayPrivateEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+      VpcId: ${ssm:/devsx/vpc/vpc-id}
+      VpcEndpointType: Interface
+      SubnetIds: ${ssm:/devsx/vpc/subnet-ids}
+      SecurityGroupIds:
+        - !Ref ApiGatewayPrivateSecurityGroup
+      PrivateDnsEnabled: true
+
+  ApiGatewayPrivateRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Api Wallet Private
+      MinimumCompressionSize: 1024
+      EndpointConfiguration:
+        Types:
+          - PRIVATE
+        VpcEndpointIds:
+          - !Ref ApiGatewayPrivateEndpoint
+      Policy: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "execute-api:Invoke",
+              "Resource": "execute-api:/*"
+            },
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "execute-api:Invoke",
+              "Resource": "execute-api:/*",
+              "Condition": {
+                "StringNotEquals": {
+                  "aws:SourceVpc": "${ssm:/devsx/vpc/vpc-id}"
+                }
+              }
+            }
+          ]
+        }
+
+  ApiGatewayPrivateMockMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: { Ref: "ApiGatewayPrivateRestApi" }
+      ResourceId:
+        Fn::GetAtt: [ApiGatewayPrivateRestApi, RootResourceId]
+      HttpMethod: GET
+      AuthorizationType: "NONE"
+      Integration:
+        Type: MOCK
+
+  # ApiGatewayPrivateDeployment:
+  #   Type: AWS::ApiGateway::Deployment
+  #   DependsOn: ApiGatewayPrivateMockMethod
+  #   Properties:
+  #     RestApiId: { Ref: "ApiGatewayPrivateRestApi" }
+  #     StageName: ${self:provider.stage}

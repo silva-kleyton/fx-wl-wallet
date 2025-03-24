@@ -1,0 +1,308 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Wallet {
+  id                   String         @id @default(uuid())
+  user                 String         @unique @db.VarChar(55) // uuid do usuário que possui a wallet
+  balance              Int            @default(0)
+  negativeBalanceLimit Int            @default(0)
+  balanceBlocked       Int            @default(0) // Saldo bloquado, se torna disponível na data de liberação da transação
+  balanceToRelease     Int            @default(0) // É o saldo que está parcialmente bloqueado, porém pode ser antecipado
+  balanceDisponilibity Int            @default(0) // É o saldo que é possível fazer transações e saques
+  balanceReserved      Int            @default(0) // É o saldo de reserva financeira
+  cards                Card[]
+  transactions         Transactions[]
+  userInfo             UserInfo?
+  isAdmin              Boolean?       @default(false)
+  adminId              String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  deletedAt            DateTime?
+}
+
+model UserInfo {
+  id                String    @id @default(uuid())
+  cpf               String? // cpf usuário
+  form              Json? // formulário enviado para o provider de criação de cartão
+  providerError     Boolean?  @default(false) // verificar se deu erro no provider de cartão(Niky)
+  checkedBackOffice DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  wallet            Wallet    @relation(fields: [walletId], references: [id])
+  walletId          String    @unique
+}
+
+model UserMiles {
+  id                String          @id @default(uuid())
+  user              String          @db.VarChar(36) // uuid do usuário que possui a wallet
+  pointsToRedeem    Int             @default(0)
+  pointsAccumulated Int             @default(0)
+  status            EnumStatusMiles @default(active)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+}
+
+model MilesConfig {
+  id         String    @id @default(uuid())
+  quotation  Float     @default(0.0)
+  percentage Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+}
+
+model Transactions {
+  id                     String              @id @default(uuid())
+  saleId                 String?             @db.VarChar(36) // uuid da venda.
+  rechargeId             String?             @db.VarChar(36) // uuid da venda.
+  code                   String?             @unique @db.VarChar(11) // o único da transação.
+  referenceComissionSale String?             @db.VarChar(36) // uuid da comissão na api de venda.
+  type                   EnumTypeTransaction // se é deposito ou saque
+  typeInput              EnumTypeInput? // se a entrada é relacionada a venda ou comissão, antecipação e etc
+  request                Request?            @relation(fields: [requestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  requestId              String?
+  // typeSaleTransaction    TypeSaleTransaction? // qual forma foi feita a venda
+  priceSale              Int? // valor da venda
+  value                  Int // Valor da transação
+  tax                    Int? // taxa de serviço
+  valueBlocked           Int                 @default(0) // value bloquado, se torna disponível na data de liberação da transação
+  valueToRelease         Int                 @default(0) // É o value que está parcialmente bloqueado, porém pode ser antecipado
+  valueDisponilibity     Int                 @default(0) // É o value que é possível fazer transações e saques
+  valueReserved          Int                 @default(0) // É o value que está na reserva financeira
+  // comission              Float?              @default(0.0) // porcentagem de comissão da transação
+  date                   DateTime            @db.Date // data do pagamento ou saque da transação
+  dateUnlock             DateTime?           @db.Date // data que será liberado o valor para desbloqueio
+  dateUnlockAnticipation DateTime?           @db.Date // data que será liberado o valor para desbloqueio para antecipação
+  // status                 EnumStatusTransaction @default(pending) // status da transação => // Não é necessária
+  wallet                 Wallet              @relation(fields: [walletId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  walletId               String
+  balanceHistory         BalanceHistory?
+  description            String? // descrição da transação
+  anteciped              Boolean             @default(false)
+  availableValue         Boolean             @default(false) // flag para verificar se a transação, foi paga.
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  deletedAt              DateTime?
+  card                   Card?               @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cardId                 String?
+  adminId                String?
+  provider               EnumSaleProvider? // em qual gateway a venda foi feita - start galaxyPay
+  providerId             String? // id da venda no gateway de pagamento
+  providerdata           Json? // response da transação
+  released               Boolean?
+  antecipedAmount        Int?
+  releasedAnticipation   Boolean? // Se o valor retido foi liberado
+
+  @@index([code])
+}
+
+model BalanceHistory {
+  id                   String       @id @default(uuid())
+  balanceBlocked       Int // Saldo bloquado, se torna disponível na data de liberação da transação
+  balanceToRelease     Int // É o saldo que está parcialmente bloqueado, porém pode ser antecipado
+  balanceDisponilibity Int // É o saldo que é possível fazer transações e saques
+  balanceReserved      Int          @default(0) // É o saldo de reserva financeira
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
+  transaction          Transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  transactionId        String       @unique
+}
+
+model RequestWhiteList {
+  id          String          @id @default(uuid())
+  walletId    String
+  typeRequest EnumTypeRequest
+  isActive    Boolean         @default(false)
+  adminId     String
+  createdAt   DateTime        @default(now())
+}
+
+model Request {
+  id                  String                        @id @default(uuid())
+  userId              String?
+  companyId           String?
+  emailUser           String?
+  status              EnumRequestStatusAntecipation @default(waiting)
+  description         String?                       @db.Text
+  evaluatorEmail      String?
+  typeRequest         EnumTypeRequest
+  closed              Boolean                       @default(false)
+  automaticPayment    Boolean                       @default(false)
+  valorRequest        Float
+  valorDescount       Float
+  validate            DateTime
+  typeDescount        String
+  bankAccountId       String?
+  tax                 Float? // taxa do serviço
+  acquirerTax         Int?
+  taxFixed            Int?
+  taxVariabel         Float?
+  adminId             String?
+  transactions        Transactions[]
+  lastTransactionDate DateTime?
+  reservePercentage   Float? // taxa do serviço
+  errorDescription    String?
+  externalId          String?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  deletedAt           DateTime?
+}
+
+model ConfigService {
+  id          String    @id @default(uuid())
+  nikySession String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Card {
+  id                        String         @id @default(uuid())
+  name                      String? // Nome impresso no cartão
+  virtual                   Boolean        @default(true) // se o cartão é virtual
+  typeCard                  TypeCard       @default(standard) // se é cartão normal ou do tipo facebook
+  provider                  ProviderCard   @default(niky) // seviço de cartão utilizado
+  typePerson                EnumTypePerson @default(PF)
+  providerId                String // Código do cartão retornado da provedora
+  providerCodeRequest       String? // Código da requisição que precisa se ter da provedora(Niky)
+  facebookDailyReleaseValue Int            @default(0) // valor a ser liberado diariamente para uso no facebook
+  wallet                    Wallet?        @relation(fields: [walletId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  walletId                  String?
+  transactions              Transactions[]
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  deletedAt                 DateTime?
+}
+
+model AnticipationAcquirerAnswer {
+  id           String            @id @default(uuid())
+  requestId    String
+  wasRequested Boolean           @default(false)
+  dataResponse Json?
+  provider     EnumSaleProvider? // em qual gateway a venda foi feita - start galaxyPay
+  value        Float?
+}
+
+model TransfeeraCredentials {
+  id           String    @id @default(uuid())
+  clientId     String
+  clientSecret String
+  adminId      String    @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+}
+
+model VolutiCredentials {
+  id             String    @id @default(uuid())
+  clientId       String
+  clientSecret   String
+  certificateCrt String
+  certificateKey String
+  certificatePfx String
+  pfxPassword    String
+  adminId        String    @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+}
+
+enum EnumRequestStatusAntecipation {
+  aproved
+  autoAproved
+  waiting
+  denied
+  done
+  canceled
+  processing
+  failed
+  simulationFailed
+}
+
+enum EnumTypePerson {
+  PF
+  PJ
+}
+
+enum EnumTypeTransaction {
+  deposit // transação para adicionar saldos da carteira;
+  debit // transação para retirada de saldos da carteira;
+  movement // movimentação internas entre saldos;
+}
+
+enum EnumTypeInput {
+  feesAndInterest // taxa de serviço e juros da venda
+  affiliationCommission // comissão de afiliação -> comissão do afiliado após o split
+  affiliationCommission360 // comissão da 360 no valor do afiliado
+  sallerCommission360 // comissão da 360 no valor do produtor
+  sellerCommission // comissão de uma venda -> comissão do vendedor após split
+  salesCommission // comissão de uma venda -> comissão do vendedor após split - [OBSOLETO]
+  salesCommission360 // comissão da 360 - Esse status só pode ser setado para a carteira da khure  -> comissão da 360 após split - [OBSOLETO]
+  coProducerCommission // comissão do coProdutor -> comissão do co-produtor após split
+  releaseMoney // CRON: status que a Cron roda para fazer a disponibilização de saldos na carteira
+  antecipation // requisição de antecipação de saldo
+  withdrawal // requisição de saldo
+  chargeback // requisição de chargeback
+  saleRefund // requisição de reembolso
+  cardAds // emprestimo de saldo para investimento em ads
+  recharge // recarga da carteira
+  rechargeCard // recarga de cartão
+  dischargeCard // descarga de cartão
+  manualTransaction // transação manual
+  financialReserve // reserva financeira
+  preChargebackAlert // Cobrança do alerta de Pré Chargeback do seller 
+  preChargebackAlertCommission // Comissão do admin sobre os alertas de Pré Chargeback
+}
+
+enum EnumTypeRequest {
+  antecipation // antecipação
+  withdraw // Saque
+}
+
+enum EnumStatusMiles {
+  active
+  inactive
+  blocked
+  deleted
+}
+
+// enum EnumStatusTransaction {
+//   pending
+//   paid
+//   anticipated
+//   canceled
+// }
+
+// enum TypeSaleTransaction {
+//   creditCard
+//   bankBillet
+//   pix
+// }
+
+enum ProviderCard {
+  niky
+}
+
+enum TypeCard {
+  standard
+  facebook
+}
+
+enum EnumSaleProvider {
+  galaxyPay
+  simPay
+  credPay
+}

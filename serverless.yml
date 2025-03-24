@@ -1,0 +1,277 @@
+service: api-devsx-wallet
+frameworkVersion: "3"
+
+useDotenv: true
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-offline
+  - serverless-webpack
+  - serverless-plugin-ifelse
+  - serverless-prune-plugin
+
+custom:
+  prune:
+    automatic: true
+    includeLayers: true
+    number: 3
+  currentStage: ${opt:stage, self:provider.stage}
+  # serverlessIfElse:
+  #   - If: '"${self:custom.currentStage}" == "dev"'
+  #     Exclude:
+  #       - provider.vpc
+  ConfigCognitoCustom:
+    staging:
+      UserPoolName: serverless-auth-pool
+      ClientName: user-pool-ui
+    dev:
+      UserPoolName: serverless-auth-pool-${opt:stage}
+      ClientName: user-pool-ui-${opt:stage}
+    prd:
+      UserPoolName: serverless-auth-pool-${opt:stage}
+      ClientName: user-pool-ui-${opt:stage}
+  optimize:
+    external: ["@prisma/client", ".prisma/client"]
+  # securityGroupId:
+  #   dev: sg-022890d7777241ea2
+  #   staging: sg-022890d7777241ea2
+  #   prod: sg-022890d7777241ea2
+  # subnetId1:
+  #   dev: subnet-05dc3c730f1a541b6
+  #   staging: subnet-05dc3c730f1a541b6
+  #   prod: subnet-05dc3c730f1a541b6
+  # subnetId2:
+  #   dev: subnet-0690b49580961b4a7
+  #   staging: subnet-0690b49580961b4a7
+  #   prod: subnet-0690b49580961b4a7
+  packageLimit: "250mb"
+  webpack:
+    webpackConfig: "webpack.config.js"
+    includeModules:
+      forceInclude:
+        - "@nestjs/platform-express"
+        - prisma
+        - "@nestjs/swagger"
+        - aws-lambda
+    excludeFiles: src/**/*.spec.js
+    concurrency: 2
+    serializedCompile: true
+    packagerOptions:
+      scripts:
+        - "prisma generate"
+        - find . -name "libquery_engine-*" -not -name "libquery_engine-rhel-openssl-*" | xargs rm
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage}
+  memorySize: 1024
+  timeout: 30
+  vpc:
+    securityGroupIds:
+      - ${ssm:/devsx/vpc/security-group-ids}
+    subnetIds: ${ssm:/devsx/vpc/subnet-ids}
+  apiGateway:
+    restApiId: { Ref: "ApiGatewayPrivateRestApi" }
+    restApiRootResourceId:
+      Fn::GetAtt: [ApiGatewayPrivateRestApi, RootResourceId]
+  environment:
+    NODE_ENV: ${env:NODE_ENV}
+    AWS_REGION_APP: ${env:AWS_REGION}
+    AWS_KEY: ${env:AWS_KEY}
+    AWS_SECRET: ${env:AWS_SECRET}
+    DATABASE_URL: ${ssm:/devsx/api-wallet/database-url,env:DATABASE_URL}
+    X_API_KEY: ${ssm:/devsx/api-wallet/api-key,env:X_API_KEY}
+    # SHADOW_DATABASE_URL: ${env:SHADOW_DATABASE_URL}
+    # URL_QUEUE_ADD_CASH_WALLET:
+    #   Ref: AddCashWalletQueue
+    URL_QUEUE_INPUT_WALLET_TRANSACTION:
+      Ref: InputTransactionWalletQueue
+    URL_QUEUE_LOT_WALLET_CRON:
+      Ref: LotWalletCron
+    BASE_URL_SQS: ${ssm:/devsx/sqs/base-url,env:BASE_URL_SQS}
+    # CLIENT_ID_COGNITO: ${env:CLIENT_ID_COGNITO}
+    # USER_POOL_ID: ${env:USER_POOL_ID}
+    # BASE_URL_CORE: ${env:BASE_URL_CORE}
+    # API_KEY_CORE: ${env:API_KEY_CORE}
+    # BASE_URL_NIKY_BROKER: ${env:BASE_URL_NIKY_BROKER}
+    # BASE_URL_NIKY: ${env:BASE_URL_NIKY}
+    # NIKY_API_KEY: ${env:NIKY_API_KEY}
+    # USER_NIKY: ${env:USER_NIKY}
+    # PASS_NIKY: ${env:PASS_NIKY}
+    # TAX_RECHARGE_CARD: ${env:TAX_RECHARGE_CARD}
+    # TAX_WITHDRAW: ${env:TAX_WITHDRAW}
+    TRANSFEERA_AUTHORIZATION_URL: ${ssm:/devsx/api-wallet/transfeera-authorization-url, env:TRANSFEERA_AUTHORIZATION_URL}
+    TRANSFEERA_URL: ${ssm:/devsx/api-wallet/transfeera-url, env:TRANSFEERA_URL}
+    VOLUTI_URL: ${ssm:/devsx/api-wallet/voluti-url, env:VOLUTI_URL}
+    # TRANSFEERA_CLIENT_ID: ${env:TRANSFEERA_CLIENT_ID}
+    # TRANSFEERA_CLIENT_SECRET: ${env:TRANSFEERA_CLIENT_SECRET}
+    API_KEY_SALE: ${ssm:/devsx/api-sale/api-key, env:API_KEY_SALE}
+    BASE_URL_SALE: https://${ssm:/devsx/api-sale/api-gateway-private/domain-${self:provider.stage}, env:BASE_URL_SALE, ''}
+    CRYPTO_KEY: ${ssm:/devsx/api-wallet/crypto-key, env:CRYPTO_KEY}
+    SALE_LAMBDA_NAME: api-devsx-sale-${opt:stage}-main
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "sqs:SendMessage"
+            - "sqs:ReceiveMessage"
+            - "sqs:DeleteMessage"
+          Resource: arn:aws:sqs:${env:AWS_REGION}:*:add-cash-wallet-${opt:stage}
+        - Effect: Allow
+          Action:
+            - "sqs:*"
+          Resource:
+            Fn::GetAtt: [InputTransactionWalletQueue, Arn]
+        - Effect: Allow
+          Action:
+            - "sqs:SendMessage"
+          Resource: arn:aws:sqs:${env:AWS_REGION}:*:send-notification-${opt:stage}
+        - Effect: Allow
+          Action:
+            - "sqs:SendMessage"
+            - "sqs:ReceiveMessage"
+            - "sqs:DeleteMessage"
+          Resource: arn:aws:sqs:${env:AWS_REGION}:*:lot-wallet-cron-${opt:stage}
+        - Effect: Allow
+          Action:
+            - lambda:InvokeFunction
+            - lambda:InvokeAsync
+          Resource: "*"
+
+package:
+  individually: true
+  patterns:
+    #- '!node_modules/.prisma/client/libquery_engine-*'
+    #- 'node_modules/.prisma/client/libquery_engine-rhel-*'
+    - "!node_modules/prisma/libquery_engine-*"
+    - "!node_modules/@prisma/engines/**"
+
+functions:
+  main:
+    handler: src/lambda.handler
+    timeout: 60
+    # name: "api-360-hub-wallet-${opt:stage}"
+    description: "Serviço da carteira khure"
+    url:
+      cors: true
+    events:
+      - http:
+          method: post
+          path: "/{any+}"
+          cors: true
+      - http:
+          method: get
+          path: "/{any+}"
+          cors: true
+      - http:
+          method: post
+          path: "/backoffice/{any+}"
+          cors:
+            origin: "*"
+            headers: "*"
+      - http:
+          method: get
+          path: "/backoffice/{any+}"
+          cors: true
+      - http:
+          method: post
+          path: "/card/{any+}"
+          timeout: 60
+          cors: true
+      - http:
+          method: patch
+          path: "/{any+}"
+          timeout: 60
+          cors: true
+      - http:
+          method: put
+          path: "/{any+}"
+          cors: true
+      - http:
+          method: delete
+          path: "/{any+}"
+          cors: true
+
+  apiWalletHealthCheck:
+    handler: src/healthCheck.handler
+    events:
+      - http:
+          path: health-check
+          method: get
+
+  inputTransactionWallet:
+    handler: src/consumers/input-transaction-wallet.handler
+    # name: "input-transaction-wallet-${opt:stage}"
+    description: "Entrada de eventos na carteira"
+    timeout: 60
+    memorySize: 2048
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt:
+              - InputTransactionWalletQueue
+              - Arn
+  generateLotWallet:
+    handler: src/cron-jobs/send-lot-wallets-queue.handler
+    # name: "send-lot-wallet-${opt:stage}"
+    description: "Gera lotes de carteiras, para rodar as transanções de liberação de saldo"
+    events:
+      - schedule:
+          name: send-lot-wallet-${opt:stage}
+          description: "scheduled run in 01AM"
+          rate: rate(5 minutes)
+          # rate: cron(0 04 * * ? *) # Data em UTC
+  saveTokenNiky:
+    handler: src/cron-jobs/save-token-niky-queue.handler
+    # name: "save-token-niky-${opt:stage}"
+    description: "Salva o token (idSession da Niky da base)"
+    events:
+      - schedule:
+          name: save-token-niky-${opt:stage}
+          description: "scheduled run in 01AM"
+          rate: rate(4 minutes)
+  checkMilesPoints:
+    handler: src/cron-jobs/check-miles-points-queue.handler
+    # name: "check-miles-points-${opt:stage}"
+    description: "Verifica se o usuário tem pontos para serem liberados para resgate"
+    events:
+      - schedule:
+          name: check-miles-points-${opt:stage}
+          description: "scheduled run in 01AM"
+          rate: cron(0 04 * * ? *) # Data em UTC
+  releaseValueDaily:
+    handler: src/consumers/release-value-daily.handler
+    # name: "release-value-daily-${opt:stage}"
+    description: "Liberar transações da data atual"
+    memorySize: 2049
+    # reservedConcurrency: 5
+    timeout: 420 # 420 segundos
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - LotWalletCron
+              - Arn
+  cancelWaitingAnticipations:
+    handler: src/cron-jobs/cancel-waiting-anticipations.handler
+    # name: "cancel-waiting-anticipations-${opt:stage}"
+    description: "Cancela as requisições de antecipação que ainda estão em análise"
+    events:
+      - schedule:
+          name: cancel-waiting-anticipations-${opt:stage}
+          description: "scheduled run in 00AM"
+          rate: cron(0 03 * * ? *) # Data em UTC
+  getAnticipationSimulationStatus:
+    handler: src/cron-jobs/get-anticipation-simulation-status.handler
+    description: "Busca status de simulação das requisições de antecipação com status 'processing'"
+    events:
+      - schedule:
+          name: get-anticipation-simulation-status-${opt:stage}
+          rate: rate(10 minutes)
+
+resources:
+  - ${file(./devops/resources/sqs.yml)}
+  - ${file(./devops/resources/private-api-gateway.yml)}
+  - ${file(./devops/resources/ssm.yml)}

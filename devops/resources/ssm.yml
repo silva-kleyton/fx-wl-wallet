@@ -1,0 +1,15 @@
+Resources:
+  SSMDevsxApiGatewayPrivateDomain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/devsx/api-wallet/api-gateway-private/domain-${self:provider.stage}"
+      Type: String
+      Value: !Sub "${ApiGatewayPrivateRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}"
+  
+  SSMDevsxApiGatewayPrivateVpcEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /devsx/api-wallet/api-gateway-private/vpc-endpoint
+      Type: String
+      Value: 
+        Ref: ApiGatewayPrivateEndpoint

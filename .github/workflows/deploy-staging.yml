@@ -1,0 +1,95 @@
+name: api-khure-wallet-stage
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build-and-deploy:
+    environment: staging
+    name: Setup, Build, and Deploy
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: staging
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_KEY: ${{ secrets.AWS_KEY }}
+      AWS_SECRET: ${{ secrets.AWS_SECRET }}
+      PORT: ${{ secrets.PORT_STAGING }}
+      USER_POOL_ID: ${{ secrets.USER_POOL_ID_STAGE }}
+      CLIENT_ID_COGNITO: ${{ secrets.CLIENT_ID_COGNITO_STAGE }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+      X_API_KEY: ${{ secrets.X_API_KEY_STAGING }}
+      BASE_URL_SQS: ${{ secrets.BASE_URL_SQS }}
+      BASE_URL_CORE: ${{ secrets.BASE_URL_CORE_STAGING }}
+      API_KEY_CORE: ${{ secrets.API_KEY_CORE_STAGING }}
+      BASE_URL_NIKY_BROKER: ${{secrets.BASE_URL_NIKY_BROKER_STAGING}}
+      BASE_URL_NIKY: ${{ secrets.BASE_URL_NIKY_STAGING}}
+      NIKY_API_KEY: ${{ secrets.NIKY_API_KEY_STAGING}}
+      USER_NIKY: ${{ secrets.USER_NIKY_STAGING}}
+      PASS_NIKY: ${{ secrets.PASS_NIKY_STAGING}}
+      TAX_RECHARGE_CARD: ${{ secrets.TAX_RECHARGE_CARD_STAGING}}
+      MILES_URL: ${{ secrets.MILES_URL_STAGING}}
+      MILES_PARTNER_CODE: ${{ secrets.MILES_PARTNER_CODE_STAGING}}
+      MILES_USER: ${{ secrets.MILES_USER_STAGING}}
+      MILES_PASSWORD: ${{ secrets.MILES_PASSWORD_STAGING}}
+      TAX_WITHDRAW: ${{ secrets.TAX_WITHDRAW_STAGING }}
+      TRANSFEERA_AUTHORIZATION_URL: ${{ secrets.TRANSFEERA_AUTHORIZATION_URL_STAGING }}
+      TRANSFEERA_URL: ${{ secrets.TRANSFEERA_URL_STAGING }}
+      VOLUTI_URL: ${{ secrets.VOLUTI_URL_STAGING }}
+      TRANSFEERA_CLIENT_ID: ${{ secrets.TRANSFEERA_CLIENT_ID_STAGING }}
+      TRANSFEERA_CLIENT_SECRET: ${{ secrets.TRANSFEERA_CLIENT_SECRET_STAGING }}
+      CRYPTO_KEY: ${{ secrets.CRYPTO_KEY_STAGING }}
+      API_KEY_SALE: ${{ secrets.API_KEY_SALE_STAGING }}
+      BASE_URL_SALE: ${{ secrets.BASE_URL_SALE_STAGING }}
+    # run pipeline;
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      #- run: npm ci
+      #- run: npm test
+
+      - name: Yarn CI
+        run: yarn install --frozen-lockfile
+
+      - name: Install Serverless Framework
+        run: yarn global add serverless@3.38.0
+
+      - name: Serverless AWS authentication
+        run: sls config credentials --provider aws --key $AWS_KEY --secret $AWS_SECRET
+
+      - name: Create env file
+        run: |
+          cat > .env << EOF
+          ${{ secrets.ENV }}
+          EOF
+          sed '/AWS_REGION.*/d' .env >> env_tmp
+          sed '/AWS_SECRET.*/d' .env >> env_tmp
+          sed '/AWS_KEY.*/d' .env >> env_tmp
+          sed '/AWS_ACCESS_KEY_ID.*/d' .env >> env_tmp
+          sed '/AWS_SECRET_ACCESS_KEY.*/d' .env >> env_tmp
+          mv env_tmp .env
+
+      - name: view the secrets context
+        shell: bash
+        run: echo "$SECRETS_CONTEXT"
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
+      - name: Install Yarn dependencies
+        run: yarn
+
+      - name: Exclude build
+        run: rm -Rf .build
+
+      - name: Build Project
+        run: yarn build
+
+      - name: Configure prisma
+        run: yarn setup-prisma
+
+      - name: Deploy
+        run: |
+          sls deploy --stage staging --region $AWS_REGION

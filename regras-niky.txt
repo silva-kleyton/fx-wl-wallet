@@ -1,0 +1,4 @@
+Regras na Niky
+
+- As respostas das requests, mesmo retornando status 200. Pode ter dado erro. A forma de saber é pegando o atributo erro de dentro do payload
+- Quando há uma solicitação aberta de cartão. Não é possível criar outro. (Cartão digital a criação é na hora)
