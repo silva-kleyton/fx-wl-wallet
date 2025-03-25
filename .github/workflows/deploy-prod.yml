@@ -38,7 +38,7 @@ jobs:
         run: yarn global add serverless@3.38.0
 
       - name: Serverless AWS authentication
-        run: sls config credentials --provider aws --key $AWS_KEY --secret $AWS_SECRET
+        run: sls config credentials --provider aws --key $AWS_KEY --secret $AWS_SECRET_KEY
 
       # - name: Create env file
       #   run: |
@@ -66,20 +66,20 @@ jobs:
       - name: Build Project
         run: yarn build
 
-      - name: Migrate - SSH Tunnel 
-        shell: bash
-        run: |
-          mkdir -p ~/.ssh/
-          echo "$AWS_BASTION_SSH_KEY" > ~/.ssh/database.pem
-          chmod 600 ~/.ssh/database.pem
-          cat >>~/.ssh/config <<END
-          Host *
-            StrictHostKeyChecking no
-          END
-          ssh -fNT -L localhost:${{ secrets.PRD_AWS_DB_PORT }}:${{ secrets.PRD_AWS_DB_HOST }}:${{ secrets.PRD_AWS_DB_PORT }} -i ~/.ssh/database.pem $AWS_BASTION_SSH_USER_HOST -v
-        env:
-          AWS_BASTION_SSH_KEY: ${{ secrets.PRD_AWS_BASTION_SSH_KEY }}
-          AWS_BASTION_SSH_USER_HOST: ${{ secrets.PRD_AWS_BASTION_USER_HOST }}
+      # - name: Migrate - SSH Tunnel
+      #   shell: bash
+      #   run: |
+      #     mkdir -p ~/.ssh/
+      #     echo "$AWS_BASTION_SSH_KEY" > ~/.ssh/database.pem
+      #     chmod 600 ~/.ssh/database.pem
+      #     cat >>~/.ssh/config <<END
+      #     Host *
+      #       StrictHostKeyChecking no
+      #     END
+      #     ssh -fNT -L localhost:${{ secrets.PRD_AWS_DB_PORT }}:${{ secrets.PRD_AWS_DB_HOST }}:${{ secrets.PRD_AWS_DB_PORT }} -i ~/.ssh/database.pem $AWS_BASTION_SSH_USER_HOST -v
+      #   env:
+      #     AWS_BASTION_SSH_KEY: ${{ secrets.PRD_AWS_BASTION_SSH_KEY }}
+      #     AWS_BASTION_SSH_USER_HOST: ${{ secrets.PRD_AWS_BASTION_USER_HOST }}
 
       - name: Configure prisma
         run: yarn setup-prisma
