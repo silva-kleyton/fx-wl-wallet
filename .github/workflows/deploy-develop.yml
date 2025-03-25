@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: dev
-      AWS_REGION: us-east-2
-      AWS_KEY: ${{ secrets.PRD_AWS_KEY }}
-      AWS_SECRET: ${{ secrets.PRD_AWS_SECRET }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+      AWS_REGION: us-east-1
+      AWS_KEY: ${{ secrets.AWS_KEY }}
+      AWS_SECRET: ${{ secrets.AWS_SECRET_KEY }}
+      # DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
 
     # run pipeline;
     steps:
@@ -65,8 +65,8 @@ jobs:
       - name: Build Project
         run: yarn build
 
-      - name: Configure prisma
-        run: yarn setup-prisma
+      # - name: Configure prisma
+      #   run: yarn setup-prisma
 
       - name: Deploy
         run: |
