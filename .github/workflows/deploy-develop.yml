@@ -29,8 +29,14 @@ jobs:
       #- run: npm ci
       #- run: npm test
 
-      - name: Yarn CI
-        run: yarn install --frozen-lockfile
+      - name: Clean Install
+        run: |
+          yarn cache clean
+          rm -rf node_modules .serverless .webpack
+          yarn install --frozen-lockfile --ignore-engines --production=false
+
+      # - name: Yarn CI
+      #   run: yarn install --frozen-lockfile
 
       - name: Install Serverless Framework
         run: yarn global add serverless@3.38.0
