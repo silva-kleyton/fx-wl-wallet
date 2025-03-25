@@ -45,6 +45,7 @@ custom:
   #   prod: subnet-0690b49580961b4a7
   packageLimit: "250mb"
   webpack:
+    packager: "yarn"
     webpackConfig: "webpack.config.js"
     includeModules:
       forceInclude:
