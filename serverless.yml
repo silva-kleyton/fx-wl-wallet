@@ -46,7 +46,7 @@ custom:
   packageLimit: "250mb"
   webpack:
     packager: "yarn"
-    webpackConfig: "webpack.config.js"
+    webpackConfig: "webpack.config.cjs"
     includeModules:
       forceInclude:
         - "@nestjs/platform-express"
