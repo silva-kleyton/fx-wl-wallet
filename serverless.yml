@@ -143,9 +143,9 @@ package:
   individually: true
   excludeDevDependencies: true
   patterns:
-    - "!node_modules/**" # Exclui tudo de node_modules
-    - "node_modules/.prisma/client/**" # Inclui apenas o cliente Prisma
-    - "!node_modules/.prisma/client/libquery_engine-*" # Exclui engines não usados
+    #- '!node_modules/.prisma/client/libquery_engine-*'
+    #- 'node_modules/.prisma/client/libquery_engine-rhel-*'
+    - "!node_modules/prisma/libquery_engine-*"
     - "!node_modules/@prisma/engines/**"
 
 functions:
