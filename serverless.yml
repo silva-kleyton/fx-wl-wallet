@@ -197,83 +197,83 @@ functions:
           path: "/{any+}"
           cors: true
 
-  apiWalletHealthCheck:
-    handler: src/healthCheck.handler
-    events:
-      - http:
-          path: health-check
-          method: get
+  # apiWalletHealthCheck:
+  #   handler: src/healthCheck.handler
+  #   events:
+  #     - http:
+  #         path: health-check
+  #         method: get
 
-  inputTransactionWallet:
-    handler: src/consumers/input-transaction-wallet.handler
-    # name: "input-transaction-wallet-${opt:stage}"
-    description: "Entrada de eventos na carteira"
-    timeout: 60
-    memorySize: 2048
-    events:
-      - sqs:
-          batchSize: 1
-          arn:
-            Fn::GetAtt:
-              - InputTransactionWalletQueue
-              - Arn
-  generateLotWallet:
-    handler: src/cron-jobs/send-lot-wallets-queue.handler
-    # name: "send-lot-wallet-${opt:stage}"
-    description: "Gera lotes de carteiras, para rodar as transanções de liberação de saldo"
-    events:
-      - schedule:
-          name: send-lot-wallet-${opt:stage}
-          description: "scheduled run in 01AM"
-          rate: rate(5 minutes)
-          # rate: cron(0 04 * * ? *) # Data em UTC
-  # saveTokenNiky:
-  #   handler: src/cron-jobs/save-token-niky-queue.handler
-  #   # name: "save-token-niky-${opt:stage}"
-  #   description: "Salva o token (idSession da Niky da base)"
+  # inputTransactionWallet:
+  #   handler: src/consumers/input-transaction-wallet.handler
+  #   # name: "input-transaction-wallet-${opt:stage}"
+  #   description: "Entrada de eventos na carteira"
+  #   timeout: 60
+  #   memorySize: 2048
+  #   events:
+  #     - sqs:
+  #         batchSize: 1
+  #         arn:
+  #           Fn::GetAtt:
+  #             - InputTransactionWalletQueue
+  #             - Arn
+  # generateLotWallet:
+  #   handler: src/cron-jobs/send-lot-wallets-queue.handler
+  #   # name: "send-lot-wallet-${opt:stage}"
+  #   description: "Gera lotes de carteiras, para rodar as transanções de liberação de saldo"
   #   events:
   #     - schedule:
-  #         name: save-token-niky-${opt:stage}
+  #         name: send-lot-wallet-${opt:stage}
   #         description: "scheduled run in 01AM"
-  #         rate: rate(4 minutes)
-  # checkMilesPoints:
-  #   handler: src/cron-jobs/check-miles-points-queue.handler
-  #   # name: "check-miles-points-${opt:stage}"
-  #   description: "Verifica se o usuário tem pontos para serem liberados para resgate"
+  #         rate: rate(5 minutes)
+  #         # rate: cron(0 04 * * ? *) # Data em UTC
+  # # saveTokenNiky:
+  # #   handler: src/cron-jobs/save-token-niky-queue.handler
+  # #   # name: "save-token-niky-${opt:stage}"
+  # #   description: "Salva o token (idSession da Niky da base)"
+  # #   events:
+  # #     - schedule:
+  # #         name: save-token-niky-${opt:stage}
+  # #         description: "scheduled run in 01AM"
+  # #         rate: rate(4 minutes)
+  # # checkMilesPoints:
+  # #   handler: src/cron-jobs/check-miles-points-queue.handler
+  # #   # name: "check-miles-points-${opt:stage}"
+  # #   description: "Verifica se o usuário tem pontos para serem liberados para resgate"
+  # #   events:
+  # #     - schedule:
+  # #         name: check-miles-points-${opt:stage}
+  # #         description: "scheduled run in 01AM"
+  # #         rate: cron(0 04 * * ? *) # Data em UTC
+  # releaseValueDaily:
+  #   handler: src/consumers/release-value-daily.handler
+  #   # name: "release-value-daily-${opt:stage}"
+  #   description: "Liberar transações da data atual"
+  #   memorySize: 2049
+  #   # reservedConcurrency: 5
+  #   timeout: 420 # 420 segundos
+  #   events:
+  #     - sqs:
+  #         arn:
+  #           Fn::GetAtt:
+  #             - LotWalletCron
+  #             - Arn
+  # cancelWaitingAnticipations:
+  #   handler: src/cron-jobs/cancel-waiting-anticipations.handler
+  #   # name: "cancel-waiting-anticipations-${opt:stage}"
+  #   description: "Cancela as requisições de antecipação que ainda estão em análise"
   #   events:
   #     - schedule:
-  #         name: check-miles-points-${opt:stage}
-  #         description: "scheduled run in 01AM"
-  #         rate: cron(0 04 * * ? *) # Data em UTC
-  releaseValueDaily:
-    handler: src/consumers/release-value-daily.handler
-    # name: "release-value-daily-${opt:stage}"
-    description: "Liberar transações da data atual"
-    memorySize: 2049
-    # reservedConcurrency: 5
-    timeout: 420 # 420 segundos
-    events:
-      - sqs:
-          arn:
-            Fn::GetAtt:
-              - LotWalletCron
-              - Arn
-  cancelWaitingAnticipations:
-    handler: src/cron-jobs/cancel-waiting-anticipations.handler
-    # name: "cancel-waiting-anticipations-${opt:stage}"
-    description: "Cancela as requisições de antecipação que ainda estão em análise"
-    events:
-      - schedule:
-          name: cancel-waiting-anticipations-${opt:stage}
-          description: "scheduled run in 00AM"
-          rate: cron(0 03 * * ? *) # Data em UTC
-  getAnticipationSimulationStatus:
-    handler: src/cron-jobs/get-anticipation-simulation-status.handler
-    description: "Busca status de simulação das requisições de antecipação com status 'processing'"
-    events:
-      - schedule:
-          name: get-anticipation-simulation-status-${opt:stage}
-          rate: rate(10 minutes)
+  #         name: cancel-waiting-anticipations-${opt:stage}
+  #         description: "scheduled run in 00AM"
+  #         rate: cron(0 03 * * ? *) # Data em UTC
+  # getAnticipationSimulationStatus:
+  #   handler: src/cron-jobs/get-anticipation-simulation-status.handler
+  #   description: "Busca status de simulação das requisições de antecipação com status 'processing'"
+  #   events:
+  #     - schedule:
+  #         name: get-anticipation-simulation-status-${opt:stage}
+  #         rate: rate(10 minutes)
 
 resources:
   - ${file(./devops/resources/sqs.yml)}
