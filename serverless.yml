@@ -5,7 +5,7 @@ useDotenv: true
 plugins:
   - serverless-dotenv-plugin
   - serverless-offline
-  - serverless-webpack
+  # - serverless-webpack
   - serverless-plugin-ifelse
   - serverless-prune-plugin
 
@@ -65,21 +65,21 @@ provider:
   stage: ${opt:stage}
   memorySize: 1024
   timeout: 30
-  vpc:
-    securityGroupIds:
-      - ${ssm:/devsx/vpc/security-group-ids}
-    subnetIds: ${ssm:/devsx/vpc/subnet-ids}
+  # vpc:
+  #   securityGroupIds:
+  #     - ${ssm:/devsx/vpc/security-group-ids}
+  #   subnetIds: ${ssm:/devsx/vpc/subnet-ids}
   apiGateway:
     restApiId: { Ref: "ApiGatewayPrivateRestApi" }
     restApiRootResourceId:
       Fn::GetAtt: [ApiGatewayPrivateRestApi, RootResourceId]
   environment:
-    NODE_ENV: ${env:NODE_ENV}
+    NODE_ENV: DEV
     AWS_REGION_APP: ${env:AWS_REGION}
     AWS_KEY: ${env:AWS_KEY}
     AWS_SECRET: ${env:AWS_SECRET}
-    DATABASE_URL: ${ssm:/devsx/api-wallet/database-url,env:DATABASE_URL}
-    X_API_KEY: ${ssm:/devsx/api-wallet/api-key,env:X_API_KEY}
+    # DATABASE_URL: ${ssm:/devsx/api-wallet/database-url,env:DATABASE_URL}
+    # X_API_KEY: ${ssm:/devsx/api-wallet/api-key,env:X_API_KEY}
     # SHADOW_DATABASE_URL: ${env:SHADOW_DATABASE_URL}
     # URL_QUEUE_ADD_CASH_WALLET:
     #   Ref: AddCashWalletQueue
@@ -87,27 +87,27 @@ provider:
       Ref: InputTransactionWalletQueue
     URL_QUEUE_LOT_WALLET_CRON:
       Ref: LotWalletCron
-    BASE_URL_SQS: ${ssm:/devsx/sqs/base-url,env:BASE_URL_SQS}
-    # CLIENT_ID_COGNITO: ${env:CLIENT_ID_COGNITO}
-    # USER_POOL_ID: ${env:USER_POOL_ID}
-    # BASE_URL_CORE: ${env:BASE_URL_CORE}
-    # API_KEY_CORE: ${env:API_KEY_CORE}
-    # BASE_URL_NIKY_BROKER: ${env:BASE_URL_NIKY_BROKER}
-    # BASE_URL_NIKY: ${env:BASE_URL_NIKY}
-    # NIKY_API_KEY: ${env:NIKY_API_KEY}
-    # USER_NIKY: ${env:USER_NIKY}
-    # PASS_NIKY: ${env:PASS_NIKY}
-    # TAX_RECHARGE_CARD: ${env:TAX_RECHARGE_CARD}
-    # TAX_WITHDRAW: ${env:TAX_WITHDRAW}
-    TRANSFEERA_AUTHORIZATION_URL: ${ssm:/devsx/api-wallet/transfeera-authorization-url, env:TRANSFEERA_AUTHORIZATION_URL}
-    TRANSFEERA_URL: ${ssm:/devsx/api-wallet/transfeera-url, env:TRANSFEERA_URL}
-    VOLUTI_URL: ${ssm:/devsx/api-wallet/voluti-url, env:VOLUTI_URL}
-    # TRANSFEERA_CLIENT_ID: ${env:TRANSFEERA_CLIENT_ID}
-    # TRANSFEERA_CLIENT_SECRET: ${env:TRANSFEERA_CLIENT_SECRET}
-    API_KEY_SALE: ${ssm:/devsx/api-sale/api-key, env:API_KEY_SALE}
-    BASE_URL_SALE: https://${ssm:/devsx/api-sale/api-gateway-private/domain-${self:provider.stage}, env:BASE_URL_SALE, ''}
-    CRYPTO_KEY: ${ssm:/devsx/api-wallet/crypto-key, env:CRYPTO_KEY}
-    SALE_LAMBDA_NAME: api-devsx-sale-${opt:stage}-main
+    # BASE_URL_SQS: ${ssm:/devsx/sqs/base-url,env:BASE_URL_SQS}
+    # # CLIENT_ID_COGNITO: ${env:CLIENT_ID_COGNITO}
+    # # USER_POOL_ID: ${env:USER_POOL_ID}
+    # # BASE_URL_CORE: ${env:BASE_URL_CORE}
+    # # API_KEY_CORE: ${env:API_KEY_CORE}
+    # # BASE_URL_NIKY_BROKER: ${env:BASE_URL_NIKY_BROKER}
+    # # BASE_URL_NIKY: ${env:BASE_URL_NIKY}
+    # # NIKY_API_KEY: ${env:NIKY_API_KEY}
+    # # USER_NIKY: ${env:USER_NIKY}
+    # # PASS_NIKY: ${env:PASS_NIKY}
+    # # TAX_RECHARGE_CARD: ${env:TAX_RECHARGE_CARD}
+    # # TAX_WITHDRAW: ${env:TAX_WITHDRAW}
+    # TRANSFEERA_AUTHORIZATION_URL: ${ssm:/devsx/api-wallet/transfeera-authorization-url, env:TRANSFEERA_AUTHORIZATION_URL}
+    # TRANSFEERA_URL: ${ssm:/devsx/api-wallet/transfeera-url, env:TRANSFEERA_URL}
+    # VOLUTI_URL: ${ssm:/devsx/api-wallet/voluti-url, env:VOLUTI_URL}
+    # # TRANSFEERA_CLIENT_ID: ${env:TRANSFEERA_CLIENT_ID}
+    # # TRANSFEERA_CLIENT_SECRET: ${env:TRANSFEERA_CLIENT_SECRET}
+    # API_KEY_SALE: ${ssm:/devsx/api-sale/api-key, env:API_KEY_SALE}
+    # BASE_URL_SALE: https://${ssm:/devsx/api-sale/api-gateway-private/domain-${self:provider.stage}, env:BASE_URL_SALE, ''}
+    # CRYPTO_KEY: ${ssm:/devsx/api-wallet/crypto-key, env:CRYPTO_KEY}
+    # SALE_LAMBDA_NAME: api-devsx-sale-${opt:stage}-main
 
   iam:
     role:
@@ -117,7 +117,7 @@ provider:
             - "sqs:SendMessage"
             - "sqs:ReceiveMessage"
             - "sqs:DeleteMessage"
-          Resource: arn:aws:sqs:${env:AWS_REGION}:*:add-cash-wallet-${opt:stage}
+          Resource: arn:aws:sqs:us-east-1:*:add-cash-wallet-${opt:stage}
         - Effect: Allow
           Action:
             - "sqs:*"
@@ -126,13 +126,13 @@ provider:
         - Effect: Allow
           Action:
             - "sqs:SendMessage"
-          Resource: arn:aws:sqs:${env:AWS_REGION}:*:send-notification-${opt:stage}
+          Resource: arn:aws:sqs:us-east-1:*:send-notification-${opt:stage}
         - Effect: Allow
           Action:
             - "sqs:SendMessage"
             - "sqs:ReceiveMessage"
             - "sqs:DeleteMessage"
-          Resource: arn:aws:sqs:${env:AWS_REGION}:*:lot-wallet-cron-${opt:stage}
+          Resource: arn:aws:sqs:us-east-1:*:lot-wallet-cron-${opt:stage}
         - Effect: Allow
           Action:
             - lambda:InvokeFunction
@@ -141,10 +141,11 @@ provider:
 
 package:
   individually: true
+  excludeDevDependencies: true
   patterns:
-    #- '!node_modules/.prisma/client/libquery_engine-*'
-    #- 'node_modules/.prisma/client/libquery_engine-rhel-*'
-    - "!node_modules/prisma/libquery_engine-*"
+    - "!node_modules/**" # Exclui tudo de node_modules
+    - "node_modules/.prisma/client/**" # Inclui apenas o cliente Prisma
+    - "!node_modules/.prisma/client/libquery_engine-*" # Exclui engines não usados
     - "!node_modules/@prisma/engines/**"
 
 functions:
@@ -223,24 +224,24 @@ functions:
           description: "scheduled run in 01AM"
           rate: rate(5 minutes)
           # rate: cron(0 04 * * ? *) # Data em UTC
-  saveTokenNiky:
-    handler: src/cron-jobs/save-token-niky-queue.handler
-    # name: "save-token-niky-${opt:stage}"
-    description: "Salva o token (idSession da Niky da base)"
-    events:
-      - schedule:
-          name: save-token-niky-${opt:stage}
-          description: "scheduled run in 01AM"
-          rate: rate(4 minutes)
-  checkMilesPoints:
-    handler: src/cron-jobs/check-miles-points-queue.handler
-    # name: "check-miles-points-${opt:stage}"
-    description: "Verifica se o usuário tem pontos para serem liberados para resgate"
-    events:
-      - schedule:
-          name: check-miles-points-${opt:stage}
-          description: "scheduled run in 01AM"
-          rate: cron(0 04 * * ? *) # Data em UTC
+  # saveTokenNiky:
+  #   handler: src/cron-jobs/save-token-niky-queue.handler
+  #   # name: "save-token-niky-${opt:stage}"
+  #   description: "Salva o token (idSession da Niky da base)"
+  #   events:
+  #     - schedule:
+  #         name: save-token-niky-${opt:stage}
+  #         description: "scheduled run in 01AM"
+  #         rate: rate(4 minutes)
+  # checkMilesPoints:
+  #   handler: src/cron-jobs/check-miles-points-queue.handler
+  #   # name: "check-miles-points-${opt:stage}"
+  #   description: "Verifica se o usuário tem pontos para serem liberados para resgate"
+  #   events:
+  #     - schedule:
+  #         name: check-miles-points-${opt:stage}
+  #         description: "scheduled run in 01AM"
+  #         rate: cron(0 04 * * ? *) # Data em UTC
   releaseValueDaily:
     handler: src/consumers/release-value-daily.handler
     # name: "release-value-daily-${opt:stage}"
@@ -273,5 +274,5 @@ functions:
 
 resources:
   - ${file(./devops/resources/sqs.yml)}
-  - ${file(./devops/resources/private-api-gateway.yml)}
-  - ${file(./devops/resources/ssm.yml)}
+  # - ${file(./devops/resources/private-api-gateway.yml)}
+  # - ${file(./devops/resources/ssm.yml)}
