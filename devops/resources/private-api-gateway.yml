@@ -69,9 +69,9 @@ Resources:
       Integration:
         Type: MOCK
 
-  # ApiGatewayPrivateDeployment:
-  #   Type: AWS::ApiGateway::Deployment
-  #   DependsOn: ApiGatewayPrivateMockMethod
-  #   Properties:
-  #     RestApiId: { Ref: "ApiGatewayPrivateRestApi" }
-  #     StageName: ${self:provider.stage}
+  ApiGatewayPrivateDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: ApiGatewayPrivateMockMethod
+    Properties:
+      RestApiId: { Ref: "ApiGatewayPrivateRestApi" }
+      StageName: ${self:provider.stage}

@@ -33,7 +33,7 @@ jobs:
         run: |
           yarn cache clean
           rm -rf node_modules .serverless .webpack
-          yarn install --frozen-lockfile --ignore-engines --production=false
+          yarn install --frozen-lockfile --ignore-engines
 
       # - name: Yarn CI
       #   run: yarn install --frozen-lockfile
